@@ -5,8 +5,9 @@
 - MemoryStore : numpy matrix in-process. Same interface, no daemon, for tests
                 and the CLI.
 
-Both are keyed by Chunk.id (a content hash), which is what makes re-ingestion
-idempotent: the same text lands on the same id and overwrites itself.
+Both are keyed by Chunk.id (a hash of source, position and content), which is
+what makes re-ingestion idempotent: the same chunk lands on the same id and
+overwrites itself; ids no longer produced by the corpus are deleted.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ class VectorStore(Protocol):
     def reset(self, dim: int) -> None: ...
     def existing_ids(self) -> set[str]: ...
     def upsert(self, chunks: list[Chunk], vectors: np.ndarray) -> None: ...
+    def delete(self, ids: set[str]) -> None: ...
     def search(self, vector: np.ndarray, k: int) -> list[tuple[Chunk, float]]: ...
     def all_chunks(self) -> list[Chunk]: ...
     def count(self) -> int: ...
@@ -60,13 +62,21 @@ class MemoryStore:
             self._vecs[c.id] = np.asarray(v, dtype=np.float32)
 
     def search(self, vector: np.ndarray, k: int) -> list[tuple[Chunk, float]]:
-        if not self._vecs:
+        # Snapshot both dicts together: a concurrent reset()/upsert() must not
+        # change the key set between building ids and reading vectors.
+        snapshot = list(zip(self._chunks.values(), self._vecs.values()))
+        if not snapshot:
             return []
-        ids = list(self._vecs)
-        m = np.vstack([self._vecs[i] for i in ids])
+        chunks = [c for c, _ in snapshot]
+        m = np.vstack([v for _, v in snapshot])
         scores = m @ np.asarray(vector, dtype=np.float32)
         top = np.argsort(-scores)[:k]
-        return [(self._chunks[ids[i]], float(scores[i])) for i in top]
+        return [(chunks[i], float(scores[i])) for i in top]
+
+    def delete(self, ids: set[str]) -> None:
+        for i in ids:
+            self._chunks.pop(i, None)
+            self._vecs.pop(i, None)
 
     def all_chunks(self) -> list[Chunk]:
         return list(self._chunks.values())
@@ -124,6 +134,13 @@ class QdrantStore:
         ]
         for i in range(0, len(points), 128):
             self._client.upsert(self._collection, points=points[i : i + 128], wait=True)
+
+    def delete(self, ids: set[str]) -> None:
+        from qdrant_client.models import PointIdsList
+
+        if not ids or not self._client.collection_exists(self._collection):
+            return
+        self._client.delete(self._collection, points_selector=PointIdsList(points=[self._point_id(i) for i in ids]), wait=True)
 
     def search(self, vector: np.ndarray, k: int) -> list[tuple[Chunk, float]]:
         if not self._client.collection_exists(self._collection):

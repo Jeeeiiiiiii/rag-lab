@@ -29,15 +29,16 @@ def _wiring(a: argparse.Namespace) -> Wiring:
     return Wiring(s)
 
 
-def _ensure_ingested(w: Wiring, full: bool = False) -> None:
-    if full or w.store.count() == 0:
+def _ensure_ingested(w: Wiring, full: bool = False, always: bool = False) -> None:
+    if always or full or w.store.count() == 0:
         r = ingest(w.s.corpus_dir, w.ingest_deps(), full=full)
-        print(f"ingested: {r.documents} docs → {r.chunks} chunks ({r.upserted} new, {r.unchanged} unchanged, {r.flagged} flagged) · {r.chunking} · {r.embedder} · {r.store}", file=sys.stderr)
+        w.retriever.invalidate()
+        print(f"ingested: {r.documents} docs → {r.chunks} chunks ({r.upserted} new, {r.unchanged} unchanged, {r.removed} removed, {r.flagged} flagged) · {r.chunking} · {r.embedder} · {r.store}", file=sys.stderr)
 
 
 def cmd_ingest(a):
     w = _wiring(a)
-    _ensure_ingested(w, full=a.full or True)
+    _ensure_ingested(w, full=a.full, always=True)
 
 
 def cmd_search(a):

@@ -67,6 +67,7 @@ def healthz() -> dict[str, Any]:
 @app.post("/ingest")
 def do_ingest(body: IngestBody) -> dict[str, Any]:
     report = ingest(_settings.corpus_dir, _wiring.ingest_deps(), full=body.full)
+    _wiring.retriever.invalidate()
     log_event("ingested", report.__dict__)
     return report.__dict__
 

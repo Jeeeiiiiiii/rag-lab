@@ -26,6 +26,11 @@ class Embedder(Protocol):
         ...
 
 
+# Static names per setting, so a collection can be named without constructing
+# (and therefore downloading) the embedder.
+EMBEDDER_NAMES = {"fastembed": "bge-small-en-v1.5", "hashing": "hashing"}
+
+
 _TOKEN = re.compile(r"[a-z0-9]+")
 
 

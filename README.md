@@ -55,11 +55,11 @@ model, reported, not tuned away.
 | Decision | Why |
 |---|---|
 | **The corpus is the other labs' READMEs.** Six documents, ~57 chunks, one of them planted. | Questions with known answers in known sections are what make an eval honest. A synthetic corpus would prove nothing about retrieval over real engineering prose with tables, code fences and identifiers. |
-| **Two adapters at every seam.** Chunking: fixed \| heading. Embedder: fastembed \| hashing. Store: Qdrant \| memory. Retriever: dense \| bm25 \| hybrid. Answerer: Claude \| extractive. | One adapter is a hypothetical seam; two is a real one, and the second is always the one that runs with no daemon, no download and no key. That is what lets 17 tests and the whole eval run in under a second, and the CI gate run without an API key. |
+| **Two adapters at every seam.** Chunking: fixed \| heading. Embedder: fastembed \| hashing. Store: Qdrant \| memory. Retriever: dense \| bm25 \| hybrid. Answerer: Claude \| extractive. | One adapter is a hypothetical seam; two is a real one, and the second is always the one that runs with no daemon, no download and no key. That is what lets 20 tests and the whole eval run in under a second, and the CI gate run without an API key. |
 | **Retrieval quality is a CI gate.** `python -m rag_lab eval --gate 0.9` exits 1 if heading·hybrid hit@5 drops. | A chunking change that quietly loses three questions is a regression like any other. The table lands in the job summary so the number is visible on every pull request. |
 | **Hybrid by reciprocal rank fusion, not score mixing.** | BM25 scores and cosine similarities live on different scales; RRF only needs ranks. It rewards agreement and never needs a weight tuned per corpus. |
 | **Heading path inside the chunk text.** | The cheapest possible context injection. A chunk that starts "Pipeline Lab > The pipeline, stage by stage" embeds differently from the same table alone, and the section name is what a citation shows the reader. |
-| **Idempotent ingestion by content hash.** A chunk's id is `sha256(source + text)`; the store upserts. | Re-running ingest over the same corpus embeds nothing; an edited paragraph re-embeds only itself; nothing is ever duplicated. A chunking change is a `full=True` rebuild into its own collection (`rag-lab-<chunking>-<embedder>`), never a mixed one. |
+| **Idempotent ingestion by content hash.** A chunk's id hashes source, section, position, flags and text; the store upserts by it and deletes ids the corpus no longer produces. | Re-running ingest over the same corpus embeds nothing; an edited paragraph re-embeds only itself; a deleted file or a moved section leaves nothing behind; a guard-pattern change re-flags exactly the chunks it touches. A chunking change is a `full=True` rebuild into its own collection (`rag-lab-<chunking>-<embedder>`), never a mixed one. |
 | **The extractive answerer is the floor.** It returns the top passages, labelled, and says no model was used. The Claude answerer wraps it: citations must be labels it was given (others are dropped), `sufficient=false` is an honest "not in the documents", and any failure — API error, refusal, no typed answer — falls back. | The same principle as the finops agent's rules floor: the model makes the answer better; it never decides whether there is one. `answered_by` on every response says which path wrote the words. |
 | **Retrieved text is data, in two layers.** At ingest, chunks that look like instructions to a model get `flags=('injection',)` and are stored, not dropped. At answer time flagged chunks are withheld from the context and listed as `withheld` in the response; the system prompt says the rest is data. | Dropping the planted document would hide the attack from the eval. Keeping it flagged means the guard check can assert both halves: the injected chunk *is* retrieved for the question that targets it, and it *is* flagged. The guard is a small regex list — explainable, and it had a false positive (the finops README's phrase "the system prompt says…") that a test caught and the pattern now avoids. |
 
@@ -81,7 +81,7 @@ app/rag_lab/
   config.py             env -> Settings -> Wiring (the only module that reads os.environ)
   api.py                FastAPI: /ingest /search /ask /healthz /metrics
   __main__.py           CLI: ingest · search · ask · eval [--gate]
-app/tests/              17 tests, hashing embedder + memory store, no network
+app/tests/              20 tests, hashing embedder + memory store, no network
 docker-compose.yml      qdrant + api (corpus and eval mounted read-only)
 scripts/                up.sh  demo.sh  down.sh
 .github/workflows/      eval.yml: pytest + the gated eval on every PR
@@ -97,7 +97,7 @@ from Git Bash or `bash scripts/...` from PowerShell.
 # 0. No daemon, no key: tests and the eval in a terminal
 cd app
 python -m venv .venv && .venv\Scripts\pip install -r requirements.txt -r requirements-dev.txt
-.venv\Scripts\python -m pytest -q                         # 17 passed, hashing embedder
+.venv\Scripts\python -m pytest -q                         # 20 passed, hashing embedder
 .venv\Scripts\python -m rag_lab eval                      # the table above (first run downloads bge-small, ~130 MB)
 .venv\Scripts\python -m rag_lab search "what stands in for the ALB locally" --mode hybrid
 .venv\Scripts\python -m rag_lab ask "after how many failures does an order reach the DLQ"
@@ -163,4 +163,5 @@ The gaps, stated here rather than left to be found:
 2. **The Claude answerer is verified with a scripted client, not a live call.** No API key was available when this was built. Grounding, citation checking, withholding and the fallbacks are covered by tests; a real run is one environment variable away.
 3. **The guard is regexes.** It catches the planted document and the common phrasings; a determined attacker writes around it. The second layer (the model told it is data, and citations checked) is what limits the damage, and the honest fix is the semantic guard in *Next steps*.
 4. **`onnxruntime` is pinned to 1.20.1.** The current release segfaulted on import on the machine this was built on; the pin is a workaround, not a preference.
-5. **BM25 is rebuilt from the store on demand.** Fine for hundreds of chunks; a large corpus wants a persisted lexical index or Qdrant's sparse vectors.
+5. **BM25 is rebuilt from the store after each ingest.** Fine for hundreds of chunks; a large corpus wants a persisted lexical index or Qdrant's sparse vectors.
+6. **A code-review pass found six things after the first end-to-end run**, all fixed: the CLI's `--full` flag was always on; `/healthz` could trigger the model download (and race on it); the BM25 cache was invalidated by chunk *count* only; content-hash ids ignored position and flags and never removed deleted documents; the CI gate watched a branch name the repo did not use; `withheld` was reported even when nothing was withheld.

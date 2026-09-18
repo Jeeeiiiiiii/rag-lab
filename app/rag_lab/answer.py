@@ -54,7 +54,11 @@ class Answerer(Protocol):
 
 
 def _split(hits: list[Hit], include_flagged: bool) -> tuple[list[Hit], list[str]]:
-    usable = [h for h in hits if include_flagged or not h.chunk.flags]
+    """(hits the answerer may use, labels actually withheld). With
+    include_flagged nothing is withheld, and the response must not claim otherwise."""
+    if include_flagged:
+        return list(hits), []
+    usable = [h for h in hits if not h.chunk.flags]
     withheld = [h.chunk.label for h in hits if h.chunk.flags]
     return usable, withheld
 

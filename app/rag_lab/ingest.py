@@ -2,10 +2,13 @@
 
     ingest(corpus_dir, deps) -> IngestReport
 
-Every chunk id is a content hash, so a second run over the same files finds
-its ids already present and skips them; an edited paragraph gets a new id
-and is upserted; nothing is ever duplicated. A `full=True` run drops the
-collection first, which is what a chunking-strategy change needs.
+Every chunk id hashes source, position, flags and content, so a second run
+over the same files finds its ids already present and skips them; an edited
+paragraph, a shifted section or a re-flagged chunk gets a new id and is
+upserted; ids the corpus no longer produces (a deleted file, the old version
+of an edited chunk) are removed. Nothing is ever duplicated or left behind.
+A `full=True` run drops the collection first, which is what a
+chunking-strategy change needs.
 """
 
 from __future__ import annotations
@@ -55,19 +58,24 @@ def ingest(corpus_dir: Path, deps: IngestDeps, full: bool = False, batch: int = 
     if full:
         deps.store.reset(deps.embedder.dim)
     existing = deps.store.existing_ids()
+    current = {c.id for c in chunks}
     todo = [c for c in chunks if c.id not in existing]
-    deps.log("ingest planned", {"documents": len(docs), "chunks": len(chunks), "new": len(todo), "flagged": flagged, "full": full})
+    stale = existing - current
+    deps.log("ingest planned", {"documents": len(docs), "chunks": len(chunks), "new": len(todo), "stale": len(stale), "flagged": flagged, "full": full})
 
     for i in range(0, len(todo), batch):
         part = todo[i : i + batch]
         vectors = deps.embedder.embed([c.text for c in part])
         deps.store.upsert(part, vectors)
+    if stale:
+        deps.store.delete(stale)
 
     return IngestReport(
         documents=len(docs),
         chunks=len(chunks),
         upserted=len(todo),
         unchanged=len(chunks) - len(todo),
+        removed=len(stale),
         flagged=flagged,
         chunking=getattr(deps.chunker, "__name__", "chunker"),
         embedder=deps.embedder.name,

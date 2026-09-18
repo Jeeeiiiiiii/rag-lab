@@ -7,14 +7,16 @@ put a number on each:
 - hybrid : both, fused with reciprocal rank fusion (RRF). Rank-based, so the
            two score scales never have to be reconciled.
 
-The BM25 index is rebuilt from the store's chunks on demand; it is small
-(hundreds of chunks) and keeping one source of truth beats keeping two in
-sync.
+The BM25 index is rebuilt from the store's chunks after invalidate(); it is
+small (hundreds of chunks) and keeping one source of truth beats keeping two
+in sync. Ingest calls invalidate(); a count-based check would miss an edit
+that keeps the chunk count the same.
 """
 
 from __future__ import annotations
 
 import re
+import threading
 from typing import Literal
 
 from rank_bm25 import BM25Okapi
@@ -37,17 +39,25 @@ class Retriever:
         self._embedder = embedder
         self._store = store
         self._rrf_k = rrf_k
-        self._bm25: BM25Okapi | None = None
-        self._bm25_chunks: list[Chunk] = []
-        self._bm25_count = -1
+        # (index, chunks) swapped as one tuple, so a concurrent reader never
+        # sees a new chunk list with an old index. Rebuilt after invalidate().
+        self._lex: tuple[BM25Okapi | None, list[Chunk]] | None = None
+        self._lock = threading.Lock()
+
+    def invalidate(self) -> None:
+        """Call after any ingest; the next lexical query rebuilds from the store."""
+        self._lex = None
 
     def _lexical(self) -> tuple[BM25Okapi | None, list[Chunk]]:
-        chunks = self._store.all_chunks()
-        if self._bm25 is None or len(chunks) != self._bm25_count:
-            self._bm25_chunks = chunks
-            self._bm25_count = len(chunks)
-            self._bm25 = BM25Okapi([tokenize(c.text) for c in chunks]) if chunks else None
-        return self._bm25, self._bm25_chunks
+        lex = self._lex
+        if lex is not None:
+            return lex
+        with self._lock:
+            if self._lex is None:
+                chunks = self._store.all_chunks()
+                index = BM25Okapi([tokenize(c.text) for c in chunks]) if chunks else None
+                self._lex = (index, chunks)
+            return self._lex
 
     def dense(self, question: str, k: int) -> list[Hit]:
         vec = self._embedder.embed([question])[0]

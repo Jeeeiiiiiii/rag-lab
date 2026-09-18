@@ -26,7 +26,7 @@ from typing import Any
 
 from .answer import Answerer, ClaudeAnswerer, ExtractiveAnswerer
 from .chunking import STRATEGIES, Chunker
-from .embed import Embedder, FastEmbedEmbedder, HashingEmbedder
+from .embed import EMBEDDER_NAMES, Embedder, FastEmbedEmbedder, HashingEmbedder
 from .ingest import IngestDeps
 from .retrieve import Retriever
 from .store import MemoryStore, QdrantStore, VectorStore
@@ -104,7 +104,8 @@ class Wiring:
                 if not self.s.qdrant_url:
                     raise RuntimeError("RAG_STORE=qdrant needs QDRANT_URL")
                 # One collection per (chunking, embedder): the vectors are not comparable across them.
-                self._store = QdrantStore(self.s.qdrant_url, f"{self.s.collection}-{self.s.chunking}-{self.embedder.name}")
+                # Named from settings so touching the store never constructs (downloads) the embedder.
+                self._store = QdrantStore(self.s.qdrant_url, f"{self.s.collection}-{self.s.chunking}-{EMBEDDER_NAMES[self.s.embedder]}")
             else:
                 self._store = MemoryStore()
         return self._store

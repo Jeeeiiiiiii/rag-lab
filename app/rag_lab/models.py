@@ -1,7 +1,9 @@
 """The nouns. Plain dataclasses that cross every seam.
 
-A Chunk's id is derived from its content, so ingesting the same corpus twice
-produces the same ids and the store upserts instead of duplicating.
+A Chunk's id is derived from its source, position, flags and content, so
+ingesting the same corpus twice produces the same ids and the store upserts
+instead of duplicating — while a moved section, a re-flagged chunk or an
+edited paragraph gets a new id and the old one is removed.
 """
 
 from __future__ import annotations
@@ -34,7 +36,8 @@ class Chunk:
 
     @property
     def id(self) -> str:
-        return hashlib.sha256(f"{self.source}\n{self.text}".encode("utf-8")).hexdigest()[:24]
+        key = f"{self.source}\n{self.section}\n{self.ordinal}\n{','.join(self.flags)}\n{self.text}"
+        return hashlib.sha256(key.encode("utf-8")).hexdigest()[:24]
 
     @property
     def label(self) -> str:
@@ -77,6 +80,7 @@ class IngestReport:
     chunks: int
     upserted: int
     unchanged: int
+    removed: int
     flagged: int
     chunking: str
     embedder: str

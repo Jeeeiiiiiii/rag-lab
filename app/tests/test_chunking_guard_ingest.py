@@ -36,11 +36,14 @@ def test_by_heading_splits_a_long_section_into_windows():
     assert len(b) >= 3 and all(c.text.startswith("Title > Section B\n") for c in b)
 
 
-def test_chunk_ids_are_content_hashes():
+def test_chunk_ids_cover_source_position_flags_and_content():
     a = Chunk("x.md", "s", 0, "same text")
-    b = Chunk("x.md", "s", 7, "same text")  # different ordinal, same content
-    c = Chunk("y.md", "s", 0, "same text")
-    assert a.id == b.id and a.id != c.id and len(a.id) == 24
+    same = Chunk("x.md", "s", 0, "same text")
+    moved = Chunk("x.md", "s", 7, "same text")  # same content, later position -> new label, new id
+    flagged = Chunk("x.md", "s", 0, "same text", flags=("injection",))
+    other = Chunk("y.md", "s", 0, "same text")
+    assert a.id == same.id and len(a.id) == 24
+    assert len({a.id, moved.id, flagged.id, other.id}) == 4
 
 
 def test_guard_flags_instructions_aimed_at_a_model_and_leaves_prose_alone():
@@ -63,5 +66,21 @@ def test_ingest_is_idempotent_and_reports_counts():
     first = ingest(CORPUS, deps, full=True)
     assert first.documents == 6 and first.upserted == first.chunks > 40 and first.unchanged == 0 and first.flagged >= 1
     second = ingest(CORPUS, deps)
-    assert second.upserted == 0 and second.unchanged == first.chunks and store.count() == first.chunks
+    assert second.upserted == 0 and second.removed == 0 and second.unchanged == first.chunks and store.count() == first.chunks
     assert first.chunking.startswith("by_heading") and first.embedder == "hashing" and first.store == "memory"
+
+
+def test_ingest_removes_chunks_the_corpus_no_longer_produces(tmp_path):
+    (tmp_path / "a.md").write_text("# A\n\nalpha text here\n\n## A2\n\nsecond section words\n", encoding="utf-8")
+    (tmp_path / "b.md").write_text("# B\n\nbeta text here\n", encoding="utf-8")
+    store = MemoryStore()
+    deps = IngestDeps(chunker=by_heading(), embedder=HashingEmbedder(dim=64), store=store)
+    first = ingest(tmp_path, deps, full=True)
+    assert first.chunks == 3 and store.count() == 3
+    # edit one section, delete a file
+    (tmp_path / "a.md").write_text("# A\n\nalpha text edited\n\n## A2\n\nsecond section words\n", encoding="utf-8")
+    (tmp_path / "b.md").unlink()
+    second = ingest(tmp_path, deps)
+    assert second.upserted == 1 and second.unchanged == 1 and second.removed == 2 and store.count() == 2
+    assert {c.source for c in store.all_chunks()} == {"a.md"}
+    assert any("edited" in c.text for c in store.all_chunks()) and not any("alpha text here" in c.text for c in store.all_chunks())
