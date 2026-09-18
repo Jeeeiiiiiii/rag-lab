@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "rag-lab: retrieval, measured",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "ingest",
+        "label": "Ingest",
+        "focus": [
+          "corpus",
+          "chunk",
+          "guard",
+          "embed",
+          "store"
+        ],
+        "note": "Markdown to chunks (fixed or heading-aware), a guard that flags injection text, real embeddings, an upsert keyed by content hash."
+      },
+      {
+        "id": "ask",
+        "label": "Ask",
+        "focus": [
+          "question",
+          "retrieve",
+          "store",
+          "answer",
+          "reply"
+        ],
+        "note": "Dense and BM25 fused by reciprocal rank; flagged chunks withheld; Claude cites only labels it was given, or the extractive floor answers."
+      },
+      {
+        "id": "measure",
+        "label": "Measure",
+        "focus": [
+          "golden",
+          "retrieve",
+          "eval",
+          "gate"
+        ],
+        "note": "28 questions with known sections. hit@1, hit@5, MRR per chunking and mode; a guard check; a CI gate at heading·hybrid hit@5 ≥ 0.9."
+      }
+    ],
+    "viewBox": [
+      1080,
+      640
+    ]
+  },
+  "stages": [
+    {
+      "label": "Sources"
+    },
+    {
+      "label": "Ingest"
+    },
+    {
+      "label": "Index"
+    },
+    {
+      "label": "Serve"
+    },
+    {
+      "label": "Out"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "corpus",
+      "type": "external",
+      "label": "corpus/*.md",
+      "sublabel": "6 docs, 1 planted",
+      "stage": 0,
+      "row": 0,
+      "tag": "read-only mount",
+      "width": 110
+    },
+    {
+      "id": "golden",
+      "type": "external",
+      "label": "eval/golden.jsonl",
+      "sublabel": "28 questions",
+      "stage": 0,
+      "row": 3,
+      "width": 110
+    },
+    {
+      "id": "question",
+      "type": "frontend",
+      "label": "POST /ask",
+      "sublabel": "question, k, mode",
+      "stage": 0,
+      "row": 2,
+      "width": 110
+    },
+    {
+      "id": "chunk",
+      "type": "backend",
+      "label": "chunk",
+      "sublabel": "fixed | heading",
+      "stage": 1,
+      "row": 0,
+      "tag": "pure",
+      "width": 110
+    },
+    {
+      "id": "guard",
+      "type": "security",
+      "label": "guard",
+      "sublabel": "flags injection",
+      "stage": 1,
+      "row": 1,
+      "width": 110
+    },
+    {
+      "id": "embed",
+      "type": "backend",
+      "label": "embed",
+      "sublabel": "bge-small | hashing",
+      "stage": 2,
+      "row": 0,
+      "tag": "384 dims",
+      "width": 110
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "store",
+      "sublabel": "Qdrant | memory",
+      "stage": 2,
+      "row": 1,
+      "tag": "id = sha256(text)",
+      "width": 110
+    },
+    {
+      "id": "retrieve",
+      "type": "backend",
+      "label": "retrieve",
+      "sublabel": "dense · bm25 · RRF",
+      "stage": 3,
+      "row": 2,
+      "width": 110
+    },
+    {
+      "id": "eval",
+      "type": "backend",
+      "label": "evaluate",
+      "sublabel": "hit@1 · hit@5 · MRR",
+      "stage": 3,
+      "row": 3,
+      "tag": "+ guard check",
+      "width": 110
+    },
+    {
+      "id": "answer",
+      "type": "security",
+      "label": "answer",
+      "sublabel": "Claude | extractive",
+      "stage": 4,
+      "row": 2,
+      "tag": "flagged withheld",
+      "width": 110
+    },
+    {
+      "id": "reply",
+      "type": "frontend",
+      "label": "reply",
+      "sublabel": "text + citations",
+      "stage": 4,
+      "row": 1,
+      "width": 110
+    },
+    {
+      "id": "gate",
+      "type": "security",
+      "label": "CI gate",
+      "sublabel": "hit@5 ≥ 0.9",
+      "stage": 4,
+      "row": 3,
+      "tag": "CI",
+      "width": 110
+    }
+  ],
+  "flows": [
+    {
+      "from": "corpus",
+      "to": "chunk",
+      "label": "documents",
+      "classification": "markdown",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "from": "chunk",
+      "to": "guard",
+      "label": "chunks",
+      "classification": "heading path inside text",
+      "variant": "emphasis",
+      "route": "vertical-channel"
+    },
+    {
+      "from": "chunk",
+      "to": "embed",
+      "label": "texts",
+      "classification": "batches of 64",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "from": "guard",
+      "to": "store",
+      "label": "flags",
+      "classification": "('injection',)",
+      "variant": "security",
+      "route": "straight",
+      "labelDy": 53
+    },
+    {
+      "from": "embed",
+      "to": "store",
+      "label": "vectors",
+      "classification": "cosine",
+      "variant": "emphasis",
+      "route": "vertical-channel"
+    },
+    {
+      "from": "question",
+      "to": "retrieve",
+      "label": "question",
+      "classification": "k ≤ 20",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "from": "store",
+      "to": "retrieve",
+      "label": "top-k + all chunks for BM25",
+      "classification": "one source of truth",
+      "variant": "default",
+      "route": "vertical-channel"
+    },
+    {
+      "from": "retrieve",
+      "to": "answer",
+      "label": "hits",
+      "classification": "labelled passages",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": 53
+    },
+    {
+      "from": "answer",
+      "to": "reply",
+      "label": "answer",
+      "classification": "citations ⊆ passages",
+      "variant": "emphasis",
+      "route": "vertical-channel"
+    },
+    {
+      "from": "golden",
+      "to": "eval",
+      "label": "questions",
+      "classification": "source + must_contain",
+      "variant": "default",
+      "route": "straight"
+    },
+    {
+      "from": "retrieve",
+      "to": "eval",
+      "label": "ranked hits",
+      "classification": "per chunking × mode",
+      "variant": "default",
+      "route": "vertical-channel"
+    },
+    {
+      "from": "eval",
+      "to": "gate",
+      "label": "table",
+      "classification": "job summary",
+      "variant": "security",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "The number",
+      "items": [
+        "heading·hybrid: hit@5 0.96, MRR 0.86",
+        "RRF keeps what each side loses"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Two adapters per seam",
+      "items": [
+        "chunk · embed · store · retrieve · answer",
+        "the second: no daemon, no key"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Retrieved text is data",
+      "items": [
+        "planted injection: flagged, withheld",
+        "citations ⊆ passages the model saw"
+      ]
+    }
+  ]
+}

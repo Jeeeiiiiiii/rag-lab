@@ -1,0 +1,40 @@
+# The lab's two processes. Qdrant is the vector store; the api is the package
+# behind FastAPI. The corpus and the golden set are mounted read-only so an
+# edit on the host is an `POST /ingest` away from being live.
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./app
+    ports:
+      - "8090:8090"
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      RAG_CORPUS_DIR: /corpus
+      RAG_GOLDEN: /eval/golden.jsonl
+      RAG_CHUNKING: ${RAG_CHUNKING:-heading}
+      RAG_EMBEDDER: ${RAG_EMBEDDER:-fastembed}
+      RAG_ANSWERER: ${RAG_ANSWERER:-auto}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      FASTEMBED_CACHE_PATH: /models
+    volumes:
+      - ./corpus:/corpus:ro
+      - ./eval:/eval:ro
+      - models:/models
+    depends_on:
+      qdrant:
+        condition: service_healthy
+
+volumes:
+  qdrant-data:
+  models:
