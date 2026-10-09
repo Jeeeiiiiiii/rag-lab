@@ -83,7 +83,8 @@ app/rag_lab/
   __main__.py           CLI: ingest · search · ask · eval [--gate]
 app/tests/              20 tests, hashing embedder + memory store, no network
 docker-compose.yml      qdrant + api (corpus and eval mounted read-only)
-scripts/                up.sh  demo.sh  down.sh
+scripts/                up.sh  demo.sh  down.sh  ops.sh
+ops/                    the wire desk: server.py (stdlib) + index.html, self-hosted fonts
 .github/workflows/      eval.yml: pytest + the gated eval on every PR
 docs/                   architecture.html (interactive) and its archify source
 ```
@@ -112,6 +113,25 @@ bash scripts/demo.sh
 # 3. Tear down
 bash scripts/down.sh
 ```
+
+### The wire desk
+
+```bash
+bash scripts/ops.sh          # after up.sh; open http://localhost:8095
+```
+
+A live page that puts one question through all three retrievers side by side:
+dense and BM25 file their ranked copy on either side, the editor (hybrid) in
+the middle shows each pick as `dense #4 + BM25 #1 → 1/64 + 1/61`, and blue
+pencil joins the same chunk across wires. Pick a golden question and the
+right chunk is circled, with the rank each retriever filed it at, exactly as
+the eval scores it. The planted chunk arrives stamped *hold for legal* and is
+listed as withheld from the answer. Below: re-ingest (watch `0 embedded, 57
+unchanged`, then edit a corpus file and watch it change) and the audit, which
+runs `python -m rag_lab eval --gate 0.9` and shows the table, the gate and
+every miss. `?g=<n>` links a golden question. Nothing on the page is
+precomputed: it reads `/search`, `/ask`, `/ingest`, `/healthz`, `/metrics`,
+chunk text from Qdrant, and the eval's own output.
 
 `scripts/demo.sh` runs eight steps: health; a second ingest that re-embeds
 nothing; the three retrievers on a question with an exact identifier; a

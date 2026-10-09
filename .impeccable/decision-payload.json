@@ -1,0 +1,96 @@
+{
+  "title": "rag-lab ops page: choose the visual world",
+  "question": "The roll assigned The Wire Desk. Keep it, take an alternate, or re-roll.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "The Wire Desk",
+      "kicker": "THE ROLL",
+      "lineage": "1960s-80s newsroom wire desk: teletype copy, canary copy paper, the editor's blue pencil and the spike",
+      "thesis": "Every question is a story assignment; three wires file their ranked copy and the desk shows exactly what runs and why.",
+      "palette": ["#F1E3A6", "#1C1B19", "#2F5DA8", "#C6362B", "#E9E4D8"],
+      "materials": ["canary teletype copy paper with sprocket margins", "blue-pencil copy marks", "the HOLD FOR LEGAL rubber stamp"],
+      "viewport": "Assignment line across the top (your question), three wire columns below it (DENSE, BM25, HYBRID) each a strip of teletype copy ranked 1 to k with real scores, the editor's blue-pencil lines joining the same chunk across wires; the planted chunk arrives stamped HOLD FOR LEGAL.",
+      "risk": "Can read as nostalgic costume if the paper texture outweighs the data; the rankings must stay the loudest thing.",
+      "raised": [
+        {"from": "rw-timetable-slide-rack", "raise": "One type size for all copy: rank is carried by weight, case, reversal and rule, never by font size."},
+        {"from": "brand-identity-canon-saville-catalog-sleeve", "raise": "Each corpus source gets one fixed colour code on its slug, so the same README is recognisable across all three wires at a glance."},
+        {"from": "variable-font-specimen", "raise": "One control re-files every wire at once: change the question or k and all three columns re-rank together, live."}
+      ]
+    },
+    {
+      "id": "model-pick",
+      "label": "Gel Lanes",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "gel electrophoresis and chromatography plates",
+      "thesis": "Each retriever is a lane; every chunk is a band that lands at its rank, so the same chunk lines up (or doesn't) across lanes.",
+      "palette": ["#0E1A1F", "#7BE0C3", "#F2F0E6", "#E46F5A"],
+      "materials": ["UV-lit agarose gel", "ladder lane of reference bands", "lab-notebook margin notes"],
+      "viewport": "A dark gel slab with three lanes plus a ladder lane of corpus sources; bands glow at their rank; the injected chunk shows as a red contaminant band.",
+      "risk": "The most familiar 'science lab' metaphor, and dark plus one glowing accent sits near a common AI look."
+    },
+    {
+      "id": "challenger-lexicon",
+      "label": "Lexicon Page",
+      "verdict": "competitive",
+      "lineage": "nineteenth-century lexicon with shoulder index and colour plates",
+      "thesis": "Retrieved chunks as lexicon entries, ranked by how much apparatus each is granted; sources as the thumb index.",
+      "palette": ["#1A1814", "#EFE6CF", "#B5452A", "#2B4C8C"],
+      "materials": ["uncoated stock", "engraved rules", "bordered colour plates"],
+      "viewport": "Guide words name the question; three columns of entries; the shoulder index marks which READMEs were reached.",
+      "case": "Fuses cleanly because the corpus is prose; loses on audience identification for a DevOps learner.",
+      "risk": "Cream plus serif is a default look; needs strict plates to avoid it.",
+      "hero": "https://impeccable.style/worlds/cards/rw-lexicon-shoulder-and-plate-hero.webp"
+    },
+    {
+      "id": "challenger-timetable",
+      "label": "Timetable Slide Rack",
+      "verdict": "declined",
+      "lineage": "1971 pocket airline timetable on a light table",
+      "palette": ["#D9A521", "#2E3439", "#F4EFDF", "#C33B22", "#2F6B45"],
+      "materials": ["tinted glass slides", "goldenrod light bed"],
+      "thesis": "Rankings as raked timetable slides.",
+      "viewport": "A lateral rack of slides, one per retriever.",
+      "risk": "Airline world collides with order-lab's departures board.",
+      "case": "Loses both axes: airline imagery belongs to order-lab, and the rake hurts reading ranks.",
+      "kept": "One type size, rank by weight, case and reversal."
+    },
+    {
+      "id": "challenger-saville",
+      "label": "Catalog Sleeve",
+      "verdict": "declined",
+      "lineage": "Factory Records catalog identity",
+      "palette": ["#0B0B0B", "#FFFFFF", "#E0B020", "#3A7BD5"],
+      "materials": ["matte black", "white hairline plot"],
+      "thesis": "Every chunk a catalog number, sources colour-coded.",
+      "viewport": "A pulsar plot of scores.",
+      "risk": "Codes hide meaning from a learner.",
+      "case": "Loses both: decoding hurts a learning tool.",
+      "kept": "A fixed colour code per source."
+    },
+    {
+      "id": "challenger-specimen",
+      "label": "Type Specimen",
+      "verdict": "declined",
+      "lineage": "interactive variable-font specimen",
+      "palette": ["#FAFAF7", "#111111", "#E4572E"],
+      "materials": ["flat paper", "axis sliders"],
+      "thesis": "One slider remaps the whole grid live.",
+      "viewport": "A giant glyph and a breathing grid.",
+      "risk": "No product truth to carry.",
+      "case": "Loses both: nothing in RAG is a glyph.",
+      "kept": "One control re-ranks everything at once."
+    }
+  ],
+  "reroll": {"registers": ["safer", "bolder"]},
+  "canon": true,
+  "canonCard": {
+    "label": "The category standard",
+    "thesis": "A RAG playground: chat box, sources panel, a metrics table.",
+    "palette": ["#FFFFFF", "#111827", "#2563EB"],
+    "materials": ["clean grid", "cards and tabs"],
+    "viewport": "Question box on top, answer card, collapsible sources, eval table in a tab.",
+    "risk": "Indistinguishable from every RAG demo by design."
+  },
+  "steer": true
+}

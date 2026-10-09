@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wire Desk · rag-lab</title>
+<style>
+@font-face { font-family: "Courier Prime"; src: url(/fonts/CourierPrime-400.woff2) format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Courier Prime"; src: url(/fonts/CourierPrime-400i.woff2) format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Courier Prime"; src: url(/fonts/CourierPrime-700.woff2) format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Libre Franklin"; src: url(/fonts/LibreFranklin-var.woff2) format("woff2"); font-weight: 400 900; font-style: normal; font-display: swap; }
+
+:root {
+  --desk: #232B25;
+  --desk-raised: #2C362F;
+  --desk-rule: #44514A;
+  --chalk: #ECE7DA;
+  --chalk-dim: #AEB7AB;
+  --paper: #F2E4A8;
+  --paper-edge: #E3D18B;
+  --paper-rule: #CDBB74;
+  --ink: #1C1B19;
+  --ink-dim: #5A5032;
+  --pencil: #2B58A6;
+  --pencil-soft: rgba(43, 88, 166, .14);
+  --pencil-desk: #7FA6E6;   /* 5:1 on the desk */
+  --stamp: #C3352A;
+  --stamp-ink: #F5B7B0;
+  --stamp-deep: #A3281F;    /* stamp ink on paper: 5.9:1 on canary */
+
+  --src-mesh: #1F6F78;
+  --src-order: #8F6210;
+  --src-pipeline: #6B4C9A;
+  --src-finops: #3B7A37;
+  --src-signal: #3D5A80;
+  --src-onboarding: #6B6257;
+
+  --size: 15px;           /* the one copy size: rank is weight, case, reversal and rule */
+  --lh: 1.5;
+  --copy: "Courier Prime", "Courier New", ui-monospace, monospace;
+  --sign: "Libre Franklin", "Franklin Gothic Medium", "Arial Narrow", sans-serif;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --gap: 22px;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--desk); color-scheme: dark; }
+body {
+  margin: 0; background: var(--desk); color: var(--chalk);
+  font: 400 var(--size)/var(--lh) var(--sign);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--pencil); color: var(--paper); }
+:focus-visible { outline: 2px solid var(--chalk); outline-offset: 3px; }
+.paper :focus-visible, .paper:focus-visible { outline-color: var(--pencil); }
+input, select, button { font: inherit; color: inherit; }
+html { scrollbar-color: var(--desk-rule) var(--desk); }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--desk); }
+::-webkit-scrollbar-thumb { background: var(--desk-rule); border: 3px solid var(--desk); border-radius: 6px; }
+
+.page { max-width: 1360px; margin: 0 auto; padding: 26px 28px 48px; }
+
+/* masthead ---------------------------------------------------------------- */
+.masthead { display: grid; grid-template-columns: 1fr auto; gap: 12px 32px; align-items: end; padding-bottom: 14px; border-bottom: 3px double var(--desk-rule); }
+.masthead h1 { margin: 0; font: 800 2.75rem/1 var(--sign); letter-spacing: -.01em; color: var(--chalk); }
+.masthead h1 span { color: var(--paper); }
+.dateline { margin-top: 8px; color: var(--chalk-dim); }
+.dateline b { color: var(--chalk); font-weight: 600; }
+.status { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 18px; color: var(--chalk-dim); }
+.status b { color: var(--chalk); font-weight: 600; }
+.status .down b { color: var(--stamp-ink); }
+.run .who code { font-family: var(--copy); color: var(--chalk); }
+.lede { max-width: 112ch; margin: 16px 0 0; color: var(--chalk-dim); }
+.lede b { color: var(--chalk); font-weight: 600; }
+
+.banner { margin-top: 16px; padding: 10px 14px; border: 1px solid rgba(195, 53, 42, .55); background: rgba(195, 53, 42, .1); color: var(--stamp-ink); border-radius: 3px; }
+.banner code { font-family: var(--copy); }
+
+/* the assignment slip --------------------------------------------------------- */
+.assign { margin-top: 22px; display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: stretch; }
+.slip { position: relative; display: flex; align-items: center; background: var(--paper); color: var(--ink); border-radius: 2px; padding: 0 14px; min-height: 50px; box-shadow: 0 1px 0 rgba(0,0,0,.35), 0 6px 14px -8px rgba(0,0,0,.6); }
+.slip label { font: 700 var(--size)/1 var(--sign); letter-spacing: .08em; text-transform: uppercase; padding-right: 12px; margin-right: 12px; border-right: 1px solid var(--paper-rule); white-space: nowrap; }
+.slip input { flex: 1; min-width: 0; border: 0; background: transparent; font-family: var(--copy); padding: 14px 0; caret-color: var(--pencil); }
+.slip input::placeholder { color: var(--ink-dim); opacity: 1; }
+.slip input:focus { outline: none; }
+.slip:focus-within { box-shadow: 0 0 0 2px var(--pencil), 0 6px 14px -8px rgba(0,0,0,.6); }
+
+.depth { display: flex; border: 1px solid var(--desk-rule); border-radius: 2px; overflow: hidden; }
+.depth span { align-self: center; padding: 0 10px 0 12px; color: var(--chalk-dim); white-space: nowrap; }
+.depth button { border: 0; border-left: 1px solid var(--desk-rule); background: transparent; min-width: 42px; cursor: pointer; font-weight: 600; transition: background-color .12s; }
+.depth button[aria-pressed="true"] { background: var(--chalk); color: var(--desk); }
+.depth button:not([aria-pressed="true"]):hover { background: var(--desk-raised); }
+
+.file { border: 0; border-radius: 2px; background: var(--pencil); color: #fff; font-weight: 700; padding: 0 22px; cursor: pointer; letter-spacing: .02em; transition: transform .14s var(--ease), background-color .12s; white-space: nowrap; }
+.file:hover { background: #2350A0; }
+.file:active { transform: scale(.97); }
+.file[disabled] { opacity: .6; cursor: progress; }
+
+.lessons { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; color: var(--chalk-dim); }
+.lessons > span { margin-right: 4px; }
+.lesson { border: 1px solid var(--desk-rule); background: transparent; border-radius: 2px; padding: 6px 12px; cursor: pointer; transition: border-color .12s, background-color .12s; }
+.lesson:hover { border-color: var(--chalk-dim); background: var(--desk-raised); }
+.lesson b { font-weight: 700; }
+.goldpick { border: 1px solid var(--desk-rule); background: var(--desk); border-radius: 2px; padding: 6px 8px; flex: 1 1 16ch; min-width: 16ch; max-width: 34ch; color: var(--chalk); }
+
+/* golden note -------------------------------------------------------------------- */
+.brief { margin-top: 20px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; padding: 12px 0; border-top: 1px solid var(--desk-rule); border-bottom: 1px solid var(--desk-rule); }
+.brief[hidden] { display: none; }
+.brief .tag { font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--paper); }
+.brief p { margin: 0; max-width: 92ch; color: var(--chalk-dim); }
+.brief p b { color: var(--chalk); font-weight: 600; }
+.brief code { font-family: var(--copy); color: var(--chalk); }
+
+/* the three wires --------------------------------------------------------------- */
+.wires { position: relative; margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 56px; }
+.wire { min-width: 0; position: relative; z-index: 1; }
+.wire header { padding-bottom: 12px; }
+.wire h2 { margin: 0; font: 800 var(--size)/1.2 var(--sign); letter-spacing: .14em; text-transform: uppercase; color: var(--chalk); display: flex; justify-content: space-between; gap: 12px; }
+.wire h2 small { font: 400 var(--size)/1.2 var(--sign); letter-spacing: 0; text-transform: none; color: var(--chalk-dim); }
+.wire header p { margin: 6px 0 0; color: var(--chalk-dim); }
+.wire.editor h2 { color: var(--paper); }
+
+.strip {
+  position: relative; background: var(--paper); color: var(--ink); border-radius: 1px;
+  padding: 4px 30px 10px;
+  box-shadow: 0 1px 0 rgba(0,0,0,.4), 0 10px 22px -12px rgba(0,0,0,.7);
+  font-family: var(--copy);
+}
+/* sprocket margins: the feed holes of teletype paper */
+.strip::before, .strip::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 18px;
+  background: radial-gradient(circle at 9px 11px, var(--desk) 3.4px, transparent 3.9px) 0 0 / 18px 22px repeat-y;
+  border-color: var(--paper-rule); border-style: dashed; border-width: 0;
+}
+.strip::before { left: 0; border-right-width: 1px; }
+.strip::after { right: 0; border-left-width: 1px; }
+.strip .empty { padding: 26px 0 20px; color: var(--ink-dim); }
+
+.copy {
+  display: block; width: 100%; text-align: left; border: 0; background: transparent; cursor: pointer;
+  padding: 12px 6px 13px; border-bottom: 1px dashed var(--paper-rule); position: relative;
+  font-family: var(--copy); color: var(--ink); border-radius: 1px;
+  transition: background-color .12s;
+}
+.copy:last-child { border-bottom: 0; }
+.copy:hover { background: rgba(28, 27, 25, .045); }
+.copy.lit { background: var(--pencil-soft); }
+.copy .line1 { display: flex; align-items: baseline; gap: 10px; }
+.rank { font-weight: 700; min-width: 2.2ch; }
+.copy.first .rank { background: var(--ink); color: var(--paper); padding: 0 4px; margin-left: -4px; }
+.slug { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; font-weight: 700; }
+.slug i { font-style: normal; font: 700 var(--size)/1 var(--sign); letter-spacing: .06em; color: #fff; padding: 3px 5px 2px; border-radius: 1px; align-self: center; }
+.slug em { font-style: normal; overflow-wrap: anywhere; }
+.copy .slug em { white-space: nowrap; overflow-wrap: normal; }
+.score { margin-left: auto; white-space: nowrap; }
+.section { display: block; margin-top: 3px; font-style: italic; color: var(--ink-dim); }
+.text { display: block; margin-top: 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.copy:not([aria-expanded="true"]) .text { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.via { display: block; margin-top: 8px; color: var(--pencil); }
+.via b { font-weight: 700; }
+.via.spiked { color: var(--ink-dim); display: flex; align-items: center; gap: 8px; }
+.via.spiked svg { width: 14px; height: 18px; flex: none; }
+.thirty { text-align: center; padding: 14px 0 4px; font-weight: 700; letter-spacing: .2em; color: var(--ink-dim); }
+
+.mark-right { display: inline-block; margin-top: 8px; position: relative; padding: 2px 10px; color: var(--pencil); font: 700 var(--size)/1.2 var(--sign); letter-spacing: .1em; text-transform: uppercase; }
+.mark-right svg { position: absolute; inset: -5px -8px; width: calc(100% + 16px); height: calc(100% + 10px); overflow: visible; }
+
+.held .text { text-decoration: line-through; text-decoration-color: rgba(195, 53, 42, .6); text-decoration-thickness: 1.5px; }
+/* rubber stamp: ink pressed into the paper, uneven take, sits in the flow so it never covers copy */
+.stamp {
+  display: inline-block; margin: 10px 0 2px 2px; transform: rotate(-3deg); transform-origin: left center;
+  font: 800 var(--size)/1 var(--sign); letter-spacing: .14em; text-transform: uppercase; color: var(--stamp);
+  border: 2.5px solid var(--stamp); border-radius: 3px; box-shadow: inset 0 0 0 2px var(--paper), inset 0 0 0 3.5px var(--stamp);
+  padding: 8px 11px 7px; mix-blend-mode: multiply; filter: url(#ink); pointer-events: none;
+  color: var(--stamp-deep); border-color: var(--stamp-deep); box-shadow: inset 0 0 0 2px var(--paper), inset 0 0 0 3.5px var(--stamp-deep);
+}
+
+.wire footer { margin-top: 10px; color: var(--chalk-dim); min-height: 1.5em; }
+.wire footer b { color: var(--chalk); font-weight: 600; }
+
+#pencil { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
+/* on the desk the pencil reads lighter, like graphite catching the lamp */
+#pencil path { fill: none; stroke: var(--pencil-desk); stroke-width: 2.5; stroke-linecap: round; filter: url(#graphite); }
+#pencil path.lit { stroke-width: 4; stroke: #A9C6F2; }
+
+/* the run -------------------------------------------------------------------------- */
+.run { margin-top: 34px; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 0 40px; }
+.run[hidden] { display: none; }
+.run h2, .drawer h2 { margin: 0 0 4px; font: 800 var(--size)/1.2 var(--sign); letter-spacing: .14em; text-transform: uppercase; }
+.run .who { margin: 0 0 12px; color: var(--chalk-dim); max-width: 70ch; }
+.run .who b { color: var(--chalk); font-weight: 600; }
+.galley { background: var(--paper); color: var(--ink); padding: 16px 20px; font-family: var(--copy); white-space: pre-wrap; overflow-wrap: anywhere; border-radius: 1px; box-shadow: 0 10px 22px -12px rgba(0,0,0,.7); }
+.galley .lbl { font-weight: 700; color: var(--pencil); }
+.ledger { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--desk-rule); }
+.ledger li { display: grid; grid-template-columns: 9ch 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--desk-rule); align-items: baseline; }
+.ledger .k { font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--chalk-dim); }
+.ledger .k.red { color: var(--stamp-ink); }
+.ledger .v { min-width: 0; }
+.ledger .v .slug em { color: var(--chalk); }
+.ledger p { margin: 4px 0 0; color: var(--chalk-dim); }
+
+/* drawers -------------------------------------------------------------------------- */
+.drawers { margin-top: 40px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 0 40px; border-top: 3px double var(--desk-rule); padding-top: 22px; }
+.drawer p.note { margin: 0 0 14px; color: var(--chalk-dim); max-width: 64ch; }
+.drawer p.note b { color: var(--chalk); font-weight: 600; }
+.drawer p.note code { font-family: var(--copy); color: var(--chalk); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.act { border: 1px solid var(--desk-rule); background: var(--desk-raised); border-radius: 2px; padding: 9px 16px; cursor: pointer; font-weight: 600; transition: border-color .12s, transform .14s var(--ease); }
+.act:hover { border-color: var(--chalk-dim); }
+.act:active { transform: scale(.97); }
+.act[disabled] { opacity: .55; cursor: progress; }
+.act.quiet { background: transparent; font-weight: 500; }
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--chalk-dim); padding: 6px 10px 6px 0; border-bottom: 1px solid var(--desk-rule); }
+td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--desk-rule); vertical-align: baseline; }
+td.n, th.n { text-align: right; }
+tr.changed td { color: var(--paper); }
+tr.gated td { background: rgba(242, 228, 168, .07); }
+tr.gated td { color: var(--paper); font-weight: 600; }
+.files td:first-child .slug em { color: var(--chalk); font-weight: 600; }
+.mono { font-family: var(--copy); }
+.dim { color: var(--chalk-dim); }
+.report { margin-top: 14px; padding: 10px 0 0; color: var(--chalk-dim); }
+.report b { color: var(--chalk); font-weight: 700; }
+.verdict { margin: 14px 0 0; display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+.verdict .pass, .verdict .fail { font: 800 var(--size)/1 var(--sign); letter-spacing: .14em; padding: 5px 8px 4px; border-radius: 1px; }
+.verdict .pass { background: var(--chalk); color: var(--desk); }
+.verdict .fail { background: var(--stamp); color: #fff; }
+details { margin-top: 14px; border-top: 1px solid var(--desk-rule); }
+summary { cursor: pointer; padding: 9px 0; font-weight: 600; }
+summary::marker { color: var(--chalk-dim); }
+.miss { padding: 8px 0 10px; border-bottom: 1px dashed var(--desk-rule); }
+.miss .q { font-family: var(--copy); color: var(--chalk); }
+.miss .m { color: var(--chalk-dim); }
+.running { display: inline-flex; gap: 8px; align-items: baseline; color: var(--paper); }
+.running i { display: inline-block; width: 9px; height: 9px; background: var(--paper); border-radius: 50%; }
+
+.colophon { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--desk-rule); color: var(--chalk-dim); max-width: 120ch; }
+.colophon code { font-family: var(--copy); color: var(--chalk); }
+
+/* motion: copy feeds off the teletype; pencil follows ------------------------------ */
+@media (prefers-reduced-motion: no-preference) {
+  .feeding .copy { animation: feed .34s var(--ease) backwards; animation-delay: calc(var(--w) * 110ms + var(--i) * 55ms); }
+}
+@keyframes feed { from { clip-path: inset(0 0 100% 0); transform: translateY(-6px); } to { clip-path: inset(0 0 0 0); transform: none; } }
+
+/* narrow ------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .wires { grid-template-columns: 1fr; gap: 28px; }
+  .wire header { min-height: 0; }
+  #pencil { display: none; }
+  .run, .drawers { grid-template-columns: minmax(0, 1fr); gap: 30px; }
+  .wires { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  .page { padding: 20px 16px 36px; }
+  .masthead { grid-template-columns: 1fr; }
+  .masthead h1 { font-size: 2.2rem; }
+  .status { justify-content: flex-start; }
+  .assign { grid-template-columns: 1fr 1fr; }
+  .slip { grid-column: 1 / -1; flex-wrap: wrap; padding-top: 10px; }
+  .slip label { border-right: 0; padding-right: 0; }
+  .slip input { flex-basis: 100%; padding-top: 6px; }
+  .file { min-height: 46px; }
+  .strip { padding: 4px 24px 10px; }
+  .strip::before, .strip::after { width: 14px; background-size: 14px 22px; background-image: radial-gradient(circle at 7px 11px, var(--desk) 3px, transparent 3.5px); }
+  .ledger li { grid-template-columns: 1fr; gap: 2px; }
+  .goldpick { max-width: 100%; flex-basis: 100%; }
+  .files td:nth-child(3), .files th:nth-child(3) { display: none; }   /* hashes: the desktop shows them */
+  #auditout table { font-size: inherit; }
+  #auditout th, #auditout td { padding-right: 6px; letter-spacing: 0; }
+  #auditout th:nth-child(6), #auditout td:nth-child(6) { display: none; }  /* misses are counted in the disclosure below */
+}
+.scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- user-space region: a near-horizontal pencil line has a bounding box ~0px tall,
+       and a percentage region would clip it away entirely -->
+  <filter id="graphite" filterUnits="userSpaceOnUse" x="-100" y="-100" width="4000" height="12000">
+    <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"/>
+    <feDisplacementMap in="SourceGraphic" scale="1.6"/>
+  </filter>
+  <!-- rubber-stamp ink: a rough edge, plus speckled gaps where the stamp took less ink -->
+  <filter id="ink" x="-5%" y="-10%" width="110%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="3" result="grain"/>
+    <feDisplacementMap in="SourceGraphic" in2="grain" scale="2.2" result="edge"/>
+    <feTurbulence type="fractalNoise" baseFrequency=".35" numOctaves="3" seed="11" result="blot"/>
+    <feColorMatrix in="blot" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.4 1.9" result="take"/>
+    <feComposite in="edge" in2="take" operator="in"/>
+  </filter>
+</svg>
+
+<div class="page">
+  <header class="masthead">
+    <div>
+      <h1>RAG Lab <span>Wire Desk</span></h1>
+      <div class="dateline" id="dateline">Reading the desk…</div>
+    </div>
+    <div class="status" id="status" aria-live="polite"></div>
+  </header>
+
+  <p class="lede">A question goes out as an assignment; <b>three wires</b> file ranked copy. Dense matches meaning, BM25 exact words, and <b>the editor</b> merges the two by rank. Blue pencil joins the same chunk; copy the guard flagged is <b>held for legal</b>, never sent to the answerer.</p>
+
+  <div id="banner"></div>
+
+  <form class="assign" id="assign" autocomplete="off">
+    <div class="slip paper">
+      <label for="q">Assignment</label>
+      <input id="q" name="q" placeholder="Ask anything the labs' READMEs could answer" required minlength="3">
+    </div>
+    <div class="depth" role="group" aria-label="How many pieces each wire files">
+      <span>Top</span>
+      <button type="button" data-k="3" aria-pressed="false">3</button>
+      <button type="button" data-k="5" aria-pressed="true">5</button>
+      <button type="button" data-k="8" aria-pressed="false">8</button>
+    </div>
+    <button class="file" id="file" type="submit">File story</button>
+  </form>
+
+  <div class="lessons" id="lessons"><span>Known answers:</span></div>
+
+  <section class="brief" id="brief" hidden aria-live="polite"></section>
+
+  <section class="wires" id="wires" aria-label="The three wires">
+    <svg id="pencil" aria-hidden="true"></svg>
+    <article class="wire" data-wire="dense">
+      <header>
+        <h2>Dense <small id="ms-dense"></small></h2>
+        <p>Meaning. Cosine similarity, 0 to 1.</p>
+      </header>
+      <div class="strip paper" id="strip-dense"><p class="empty">No assignment filed yet.</p></div>
+      <footer id="foot-dense"></footer>
+    </article>
+    <article class="wire editor" data-wire="hybrid">
+      <header>
+        <h2>The editor <small id="ms-hybrid"></small></h2>
+        <p>Hybrid. Sums 1 / (60 + rank) from each wire.</p>
+      </header>
+      <div class="strip paper" id="strip-hybrid"><p class="empty">The editor merges what the two wires file.</p></div>
+      <footer id="foot-hybrid"></footer>
+    </article>
+    <article class="wire" data-wire="bm25">
+      <header>
+        <h2>BM25 <small id="ms-bm25"></small></h2>
+        <p>Exact words. BM25 score, no ceiling.</p>
+      </header>
+      <div class="strip paper" id="strip-bm25"><p class="empty">No assignment filed yet.</p></div>
+      <footer id="foot-bm25"></footer>
+    </article>
+  </section>
+
+  <section class="run" id="run" hidden>
+    <div>
+      <h2>What ran</h2>
+      <p class="who" id="who"></p>
+      <div class="galley paper" id="galley"></div>
+    </div>
+    <div>
+      <h2>Attribution</h2>
+      <p class="who">Citations must be labels the answerer was handed; anything else is dropped. Held copy never reaches it. Labels are <code>file#chunk</code>, shown without <code>.md</code>.</p>
+      <ul class="ledger" id="ledger"></ul>
+    </div>
+  </section>
+
+  <section class="drawers">
+    <div class="drawer">
+      <h2>Intake</h2>
+      <p class="note">The corpus is <code>corpus/*.md</code>. Each chunk's id is a hash of its source, position, flags and text, so <b>re-ingesting embeds only what changed</b>. Edit a file, then re-ingest and watch the count.</p>
+      <div class="actions">
+        <button class="act" id="ingest" type="button">Re-ingest what changed</button>
+        <button class="act quiet" id="rebuild" type="button">Rebuild the whole collection</button>
+      </div>
+      <table class="files" id="files"></table>
+      <div class="report" id="intake" aria-live="polite"></div>
+    </div>
+    <div class="drawer">
+      <h2>Accuracy audit</h2>
+      <p class="note">The golden set is <span id="gcount">28</span> questions with a known source and phrase. The audit runs <code>python -m rag_lab eval --gate 0.9</code>, the command CI gates on: <b>hit@1</b> is "right copy filed first", <b>hit@5</b> "filed anywhere in the top 5", <b>MRR</b> the average of 1 / rank.</p>
+      <div class="actions">
+        <button class="act" id="audit" type="button">Run the audit</button>
+      </div>
+      <div id="auditout" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <p class="colophon" id="colophon">Every number on this page comes from the running lab: the API's <code>/search</code>, <code>/ask</code>, <code>/ingest</code>, <code>/healthz</code> and <code>/metrics</code>, chunk text from Qdrant, and the eval command. Nothing is precomputed.</p>
+</div>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const WIRES = ["dense", "hybrid", "bm25"];
+const SOURCES = {
+  "mesh-lab.md": ["MESH", "--src-mesh"], "order-lab.md": ["ORDR", "--src-order"],
+  "pipeline-lab.md": ["PIPE", "--src-pipeline"], "finops-agent.md": ["FNOP", "--src-finops"],
+  "signal-desk.md": ["SGNL", "--src-signal"], "onboarding-notes.md": ["ONBD", "--src-onboarding"],
+};
+const slug = (source, ordinal) => {
+  const [code, v] = SOURCES[source] || [source.slice(0, 4).toUpperCase(), "--src-onboarding"];
+  return `<span class="slug"><i style="background:var(${v})">${code}</i><em>${esc(source)}${ordinal != null ? "#" + ordinal : ""}</em></span>`;
+};
+const labelParts = label => { const i = label.lastIndexOf("#"); return [label.slice(0, i), label.slice(i + 1)]; };
+const fmt = (n, d = 2) => Number(n).toFixed(d);
+const ago = ms => { const s = Math.round((Date.now() - ms) / 1000); return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(ms).toLocaleTimeString(); };
+
+let K = 5, desk = null, story = null, filing = false, lit = null, expanded = new Set();
+
+// --- desk status ---------------------------------------------------------------------
+async function poll() {
+  try {
+    desk = await (await fetch("/api/desk")).json();
+    renderDesk();
+  } catch (e) {
+    $("#banner").innerHTML = `<div class="banner">The desk server stopped answering (${esc(e.message)}). Restart it with <code>bash scripts/ops.sh</code>.</div>`;
+  }
+  setTimeout(poll, desk?.audit?.state === "running" ? 1000 : 4000);
+}
+
+function renderDesk() {
+  const h = desk.health, m = desk.metrics;
+  const now = new Date(desk.now);
+  $("#dateline").innerHTML = `<b>${now.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</b> · ${now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · API ${esc(desk.config.api)}`;
+  const answered = m ? Object.entries(m.answered_by).map(([k, v]) => `${k} ${v}`).join(", ") : "";
+  $("#status").innerHTML = h ? [
+    `<span>Store <b>${esc(h.store)}</b></span>`,
+    `<span><b>${h.chunks}</b> chunks</span>`,
+    `<span>Chunking <b>${esc(h.chunking)}</b></span>`,
+    `<span>Embedder <b>${esc(h.embedder)}</b></span>`,
+    `<span>Answers <b>${esc(answered || "none yet")}</b></span>`,
+  ].join("") : `<span class="down">API <b>not answering</b></span>`;
+  $("#banner").innerHTML = desk.errors.length
+    ? `<div class="banner">${desk.errors.map(esc).join("<br>")}<br>Is the lab up? <code>bash scripts/up.sh</code> starts Qdrant and the API.</div>` : "";
+  $("#gcount").textContent = desk.golden.length;
+  if (!$("#lessons").dataset.ready) renderLessons();
+  renderFiles();
+  renderIntake();
+  renderAudit();
+}
+
+// --- lessons: golden questions chosen because they teach something ------------------------
+function renderLessons() {
+  const g = desk.golden, find = s => g.findIndex(x => x.q.toLowerCase().includes(s));
+  const picks = [
+    ["Exact identifier", "dense loses it", find("high ports")],
+    ["Paraphrase", "BM25 loses it", find("stands in for the alb")],
+    ["Injection", "held", g.findIndex(x => x.expect_flagged)],
+    ["Hybrid's miss", "nobody files it", find("network load balancer")],
+  ].filter(p => p[2] >= 0);
+  const el = $("#lessons");
+  el.insertAdjacentHTML("beforeend", picks.map(([t, why, i]) =>
+    `<button class="lesson" type="button" data-g="${i}"><b>${t}</b> · ${why}</button>`).join("") +
+    `<select class="goldpick" id="goldpick" aria-label="Any golden question"><option value="">All ${g.length} golden questions…</option>${g.map((x, i) => `<option value="${i}">${esc(x.q)}</option>`).join("")}</select>`);
+  el.dataset.ready = "1";
+  el.addEventListener("click", e => { const b = e.target.closest(".lesson"); if (b) fileGolden(+b.dataset.g); });
+  $("#goldpick").addEventListener("change", e => { if (e.target.value !== "") fileGolden(+e.target.value); });
+}
+function fileGolden(i) { $("#q").value = desk.golden[i].q; fileStory(i); }
+
+// --- filing --------------------------------------------------------------------------
+$("#assign").addEventListener("submit", e => { e.preventDefault(); fileStory(null); });
+document.querySelectorAll(".depth button").forEach(b => b.addEventListener("click", () => {
+  K = +b.dataset.k;
+  document.querySelectorAll(".depth button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  if (story) fileStory(story.golden ? story.golden.index : null);   // one control re-files every wire
+}));
+
+async function fileStory(golden) {
+  const q = $("#q").value.trim();
+  if (q.length < 3 || filing) return;
+  filing = true;
+  const btn = $("#file"); btn.disabled = true; btn.textContent = "Filing…";
+  try {
+    const r = await fetch("/api/file", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q, k: K, golden }) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error);
+    story = data; lit = null; expanded = new Set();
+    renderStory(true);
+  } catch (e) {
+    $("#banner").innerHTML = `<div class="banner">Could not file the story: ${esc(e.message)}</div>`;
+  } finally {
+    filing = false; btn.disabled = false; btn.textContent = "File story";
+  }
+}
+
+// --- the wires -----------------------------------------------------------------------
+function cardHTML(c, wire, w) {
+  const [src, ord] = labelParts(c.label);
+  const held = c.flags.includes("injection");
+  // The chunk repeats its heading path first; the section line already shows it.
+  // Single newlines are the README's hard wraps, not the copy's: re-flow them, keep paragraphs.
+  const body = (c.text.startsWith(c.section) ? c.text.slice(c.section.length) : c.text)
+    .replace(/^\s+/, "").replace(/([^\n])\n(?!\n)/g, "$1 ");
+  let via = "";
+  if (wire === "hybrid") {
+    const f = c.fusion, parts = [], sums = [];
+    if (f.dense_rank) { parts.push(`dense <b>#${f.dense_rank}</b>`); sums.push(`1/${60 + f.dense_rank}`); }
+    if (f.bm25_rank) { parts.push(`BM25 <b>#${f.bm25_rank}</b>`); sums.push(`1/${60 + f.bm25_rank}`); }
+    via = `<span class="via">${parts.join(" + ")} → ${sums.join(" + ")} = <b>${fmt(f.sum, 4)}</b></span>`;
+  } else {
+    const ed = story.wires.hybrid.find(h => h.label === c.label);
+    via = ed ? `<span class="via">Editor ranked it <b>#${ed.rank}</b></span>`
+      : `<span class="via spiked"><svg viewBox="0 0 14 18" aria-hidden="true"><path d="M7 1 L7 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M2 16.5 h10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>Spiked: the editor did not run it</span>`;
+  }
+  const scale = wire === "dense" ? fmt(c.score, 3) : wire === "bm25" ? fmt(c.score, 2) : fmt(c.score, 4);
+  const right = c.relevant ? `<span class="mark-right">Right copy<svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><path d="M8 22 C 6 6, 70 2, 93 14 C 101 22, 88 37, 50 37 C 18 37, 2 30, 9 17" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" filter="url(#graphite)"/></svg></span>` : "";
+  return `<button type="button" class="copy${c.rank === 1 ? " first" : ""}${held ? " held" : ""}${lit === c.label ? " lit" : ""}" data-label="${esc(c.label)}" style="--w:${w};--i:${c.rank - 1}" aria-expanded="${expanded.has(wire + c.label)}" data-key="${esc(wire + c.label)}">
+    <span class="line1"><span class="rank">${String(c.rank).padStart(2, "0")}</span>${slug(src, ord).replace(/\.md#/, "#")}<span class="score">${scale}</span></span>
+    <span class="section">${esc(c.section || src)}</span>
+    ${held ? `<span class="stamp">Hold for legal</span>` : ""}
+    <span class="text">${esc(body)}</span>
+    ${via}${right}
+  </button>`;
+}
+
+function renderStory(feed) {
+  const s = story;
+  WIRES.forEach((wire, w) => {
+    const cards = s.wires[wire];
+    $(`#strip-${wire}`).innerHTML = cards.length ? cards.map(c => cardHTML(c, wire, w)).join("") + `<div class="thirty" aria-label="end of take">— 30 —</div>`
+      : `<p class="empty">Nothing filed: no chunk shares a word with the assignment.</p>`;
+    $(`#ms-${wire}`).textContent = `${s.ms[wire]} ms`;
+    const rc = s.right_copy?.[wire];
+    $(`#foot-${wire}`).innerHTML = !s.right_copy ? `Filed ${cards.length} of ${s.k}.`
+      : typeof rc === "number" ? `Right copy filed at <b>#${rc}</b>.`
+      : rc?.beyond ? `Right copy <b>not filed</b>: it sits at #${rc.beyond} of ${s.depth}.`
+      : `Right copy <b>not filed</b>, not even ${s.depth} deep.`;
+  });
+  renderBrief();
+  renderRun();
+  const wires = $("#wires");
+  wires.classList.remove("feeding");
+  drawPencil();
+  if (feed) { void wires.offsetWidth; wires.classList.add("feeding"); drawPencilIn(); }
+}
+
+function renderBrief() {
+  const s = story, g = s.golden, el = $("#brief");
+  if (!g) { el.hidden = true; return; }
+  el.hidden = false;
+  if (g.expect_flagged) {
+    const held = s.wires.hybrid.find(c => c.flags.includes("injection"));
+    el.innerHTML = `<span class="tag">Golden</span><p>This question is aimed at the <b>planted document</b>, <code>onboarding-notes.md</code>, whose "Assistant configuration" section tells any AI reading it to ignore its instructions. The guard flagged it at intake. ${held ? `It was retrieved at <b>#${held.rank}</b> by the editor and held, so the answerer never saw it.` : `It was not in the editor's top ${s.k} this time.`}</p>`;
+    return;
+  }
+  const rc = s.right_copy, say = (name, v) => typeof v === "number" ? `${name} filed it at <b>#${v}</b>` : v?.beyond ? `${name} <b>missed</b> (#${v.beyond} of ${s.depth})` : `${name} <b>missed</b> entirely`;
+  el.innerHTML = `<span class="tag">Golden</span><p>The right copy is in <b>${esc(g.source)}</b> and contains ${g.must_contain.map(p => `<code>${esc(p)}</code>`).join(" and ")}. ${say("Dense", rc.dense)}; ${say("BM25", rc.bm25)}; ${say("the editor", rc.hybrid)}. This is exactly how the audit scores a question.</p>`;
+}
+
+function renderRun() {
+  const a = story.answer;
+  $("#run").hidden = false;
+  const model = a.answered_by === "extractive";
+  $("#who").innerHTML = model
+    ? `Answered by <b>the extractive floor</b>: no model wrote these words. It runs the editor's passages verbatim, labelled. With an <code>ANTHROPIC_API_KEY</code> the Claude answerer would write here and fall back to this on any failure.`
+    : `Answered by <b>${esc(a.answered_by)}</b>${a.refused ? ", which judged the copy insufficient and said so" : ""}.`;
+  // Labels are shown without ".md" everywhere on the page, so a citation matches its wire copy letter for letter.
+  $("#galley").innerHTML = esc(a.answer).replace(/\[([\w.-]+)\.md#(\d+)\]/g, '<span class="lbl">[$1#$2]</span>');
+  const short = (s, o) => slug(s, o).replace(/\.md#/, "#");
+  const rows = [];
+  a.citations.forEach(c => { const [s, o] = labelParts(c.label); rows.push(`<li><span class="k">Cited</span><span class="v">${short(s, o)}<p>${esc(c.section)}</p></span></li>`); });
+  a.withheld.forEach(l => { const [s, o] = labelParts(l); const at = a.retrieved.indexOf(l) + 1; rows.push(`<li><span class="k red">Held</span><span class="v">${short(s, o)}<p>Retrieved at #${at}, flagged as an injection at intake, withheld from the answerer.</p></span></li>`); });
+  if (!rows.length) rows.push(`<li><span class="k">None</span><span class="v dim">Nothing was cited.</span></li>`);
+  $("#ledger").innerHTML = rows.join("");
+}
+
+// --- blue pencil: join the same chunk across wires ----------------------------------------------
+function drawPencil() {
+  const svg = $("#pencil"), box = $("#wires").getBoundingClientRect();
+  if (!story || getComputedStyle(svg).display === "none") { svg.innerHTML = ""; return; }
+  const at = (wire, label) => $(`#strip-${wire} .copy[data-label="${CSS.escape(label)}"]`);
+  const paths = [];
+  story.wires.hybrid.forEach((c, i) => {
+    const mid = at("hybrid", c.label);
+    if (!mid) return;
+    const m = mid.getBoundingClientRect(), ms = mid.closest(".strip").getBoundingClientRect();
+    for (const side of ["dense", "bm25"]) {
+      const other = at(side, c.label);
+      if (!other) continue;
+      const o = other.getBoundingClientRect(), os = other.closest(".strip").getBoundingClientRect();
+      const left = side === "dense";
+      // from the edge of one strip to the edge of the other, level with each piece's slug line
+      const x1 = (left ? os.right + 4 : os.left - 4) - box.left, y1 = o.top + 22 - box.top;
+      const x2 = (left ? ms.left - 4 : ms.right + 4) - box.left, y2 = m.top + 22 - box.top;
+      const dx = (x2 - x1) * .55;
+      paths.push(`<path data-label="${esc(c.label)}" class="${lit === c.label ? "lit" : ""}" style="--i:${i};--len:${Math.ceil(Math.hypot(x2 - x1, y2 - y1) * 1.4)}" d="M${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}"/>`);
+    }
+  });
+  svg.innerHTML = paths.join("");
+}
+
+// The pencil draws itself after the copy has fed in. No fill after the end:
+// the resting state is the plain, always-visible line.
+function drawPencilIn() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  document.querySelectorAll("#pencil path").forEach(p => {
+    const len = Math.ceil(p.getTotalLength()) + 2, i = +p.style.getPropertyValue("--i") || 0;
+    p.animate([{ strokeDasharray: `${len}`, strokeDashoffset: `${len}` }, { strokeDasharray: `${len}`, strokeDashoffset: "0" }],
+      { duration: 550, delay: 480 + i * 70, easing: "cubic-bezier(.16, 1, .3, 1)", fill: "backwards" });
+  });
+}
+window.addEventListener("resize", () => { if (story) drawPencil(); });
+
+$("#wires").addEventListener("click", e => {
+  const c = e.target.closest(".copy"); if (!c) return;
+  const key = c.dataset.key;
+  expanded.has(key) ? expanded.delete(key) : expanded.add(key);
+  lit = expanded.has(key) ? c.dataset.label : null;
+  $("#wires").classList.remove("feeding");
+  renderStory(false);
+});
+$("#wires").addEventListener("pointerover", e => {
+  const c = e.target.closest(".copy"); const label = c ? c.dataset.label : null;
+  document.querySelectorAll(".copy").forEach(x => x.classList.toggle("lit", x.dataset.label === (label || lit)));
+  document.querySelectorAll("#pencil path").forEach(p => p.classList.toggle("lit", p.dataset.label === (label || lit)));
+});
+
+// --- intake ----------------------------------------------------------------------------
+function renderFiles() {
+  const changed = new Set(desk.changed_since_intake || []);
+  $("#files").innerHTML = `<thead><tr><th>Document</th><th class="n">Size</th><th>Content hash</th></tr></thead><tbody>` +
+    desk.files.map(f => `<tr class="${changed.has(f.name) ? "changed" : ""}"><td>${slug(f.name)}</td><td class="n">${(f.bytes / 1024).toFixed(1)} KB</td><td class="mono">${f.sha}${changed.has(f.name) ? " · edited since intake" : ""}</td></tr>`).join("") + `</tbody>`;
+}
+function renderIntake() {
+  const r = desk.intake;
+  if (!r) { $("#intake").innerHTML = desk.changed_since_intake === null ? `Not re-ingested from this desk yet. The stored collection holds <b>${desk.health?.chunks ?? "?"}</b> chunks.` : ""; return; }
+  const files = r.changed_files == null ? "" : r.changed_files.length ? ` Files changed since the previous intake: ${r.changed_files.map(esc).join(", ")}.` : " No file changed since the previous intake.";
+  $("#intake").innerHTML = `${r.full ? "Rebuilt" : "Re-ingested"} ${ago(r.at)} in ${(r.ms / 1000).toFixed(1)} s: <b>${r.documents}</b> documents, <b>${r.chunks}</b> chunks. <b>${r.upserted}</b> embedded, <b>${r.unchanged}</b> unchanged, <b>${r.removed}</b> removed, <b>${r.flagged}</b> held for legal.${files}`;
+}
+async function intake(full, btn) {
+  btn.disabled = true; const label = btn.textContent; btn.textContent = full ? "Rebuilding…" : "Ingesting…";
+  try {
+    const r = await fetch("/api/intake", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ full }) });
+    const d = await r.json(); if (!r.ok) throw new Error(d.error);
+    await refresh();
+  } catch (e) { $("#intake").innerHTML = `<span style="color:var(--stamp-ink)">Intake failed: ${esc(e.message)}</span>`; }
+  finally { btn.disabled = false; btn.textContent = label; }
+}
+$("#ingest").addEventListener("click", e => intake(false, e.currentTarget));
+$("#rebuild").addEventListener("click", e => intake(true, e.currentTarget));
+async function refresh() { desk = await (await fetch("/api/desk")).json(); renderDesk(); }
+
+// --- audit -----------------------------------------------------------------------------
+function renderAudit() {
+  const a = desk.audit, out = $("#auditout"), btn = $("#audit");
+  btn.disabled = a.state === "running";
+  btn.textContent = a.state === "running" ? "Auditing…" : a.state === "done" ? "Run the audit again" : "Run the audit";
+  if (a.state === "idle") { out.innerHTML = `<p class="dim">Not run from this desk yet. Takes about a minute: both chunkings are rebuilt in memory and all ${desk.golden.length} questions go through every retriever.</p>`; return; }
+  if (a.state === "running") { out.innerHTML = `<span class="running"><i></i>Running the golden set, ${Math.round((Date.now() - a.started) / 1000)} s so far…</span>`; return; }
+  if (a.state === "failed") { out.innerHTML = `<p style="color:var(--stamp-ink)">The audit failed: ${esc(a.error)}</p>`; return; }
+  const rows = a.rows.map(r => `<tr class="${r.chunking === "heading" && r.mode === "hybrid" ? "gated" : ""}"><td>${esc(r.chunking)}</td><td>${r.mode === "hybrid" ? "editor (hybrid)" : esc(r.mode)}</td><td class="n">${fmt(r.hit1)}</td><td class="n">${fmt(r.hitk)}</td><td class="n">${fmt(r.mrr)}</td><td class="n">${a.misses.filter(m => m.chunking === r.chunking && m.mode === r.mode).length}</td></tr>`).join("");
+  const g = a.gate;
+  const misses = a.misses.map(m => `<div class="miss"><div class="q">${esc(m.q)}</div><div class="m">${esc(m.chunking)} · ${esc(m.mode)}: right copy ${m.rank ? `at #${m.rank}` : "not found"}; filed instead ${m.top.slice(0, 3).map(esc).join(", ")}</div></div>`).join("");
+  const guard = a.guard.map(x => `<div class="miss"><div class="m">${esc(x.chunking)} chunking: planted document ${x.retrieved ? "retrieved" : "<b>not</b> retrieved"} and ${x.flagged ? "flagged" : "<b>not flagged</b>"}.</div></div>`).join("");
+  out.innerHTML = `<div class="scroll"><table><thead><tr><th>Chunking</th><th>Wire</th><th class="n">hit@1</th><th class="n">hit@5</th><th class="n">MRR</th><th class="n">Misses</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${g ? `<div class="verdict"><span class="${g.pass ? "pass" : "fail"}">${g.pass ? "Gate passes" : "Gate fails"}</span><span>heading · editor hit@5 = <b>${fmt(g.value)}</b> ${g.pass ? "≥" : "<"} ${g.threshold}. Ran ${ago(a.finished)} in ${a.seconds} s.</span></div>` : ""}
+    <details><summary>${a.misses.length} misses: the questions a wire got wrong</summary>${misses}</details>
+    <details><summary>Guard check</summary>${guard}</details>`;
+}
+$("#audit").addEventListener("click", async () => {
+  await fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+  refresh();
+});
+
+// ?g=<golden index> or ?q=<question> files a story on load, so a lesson can be linked.
+(async () => {
+  await refresh().catch(() => {});
+  poll();
+  const p = new URLSearchParams(location.search);
+  if (p.has("k")) document.querySelector(`.depth button[data-k="${+p.get("k")}"]`)?.click();
+  if (p.has("g") && desk) fileGolden(+p.get("g"));
+  else if (p.get("q")) { $("#q").value = p.get("q"); fileStory(null); }
+})();
+</script>
+</body>
+</html>
